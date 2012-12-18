@@ -1,0 +1,5 @@
+E:\Users\Taylor Jensen\Dropbox\ConsoleApplication1\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe
+E:\Users\Taylor Jensen\Dropbox\ConsoleApplication1\ConsoleApplication1\bin\Debug\ConsoleApplication1.pdb
+E:\Users\Taylor Jensen\Dropbox\ConsoleApplication1\ConsoleApplication1\obj\x86\Debug\ResolveAssemblyReference.cache
+E:\Users\Taylor Jensen\Dropbox\ConsoleApplication1\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.exe
+E:\Users\Taylor Jensen\Dropbox\ConsoleApplication1\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.pdb

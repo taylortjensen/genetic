@@ -14,9 +14,10 @@ namespace GeneticAlgorithm
             int better = 0;
             int worse = 0;
             double grandAvgSum = 0;
-            for(int runs = 0; runs < 100; runs++)
+            int runs = 0;
+            for( ; runs < 1; runs++)
             {
-                int populationSize = 20;
+                int populationSize = 200;
                 int currentGeneration = 1;
                 Chromosome[] population = new Chromosome[populationSize];
                 int maxScore = 0;
@@ -26,30 +27,19 @@ namespace GeneticAlgorithm
                 //initial setup of the population
                 for (int i = 0; i < populationSize; i++)
                 {
-                    population[i] = new Chromosome(4, .5, .5);
-                    //Console.Write("Fitness Score: ");
-                    //Console.WriteLine(population[i].getFitnessScore());
+                    population[i] = new Chromosome(4, .5, .001);
+
                     if (population[i].getFitnessScore() > maxScore)
                         maxScore = population[i].getFitnessScore();
                     if (population[i].getFitnessScore() < minScore)
                         minScore = population[i].getFitnessScore();
                     total += population[i].getFitnessScore();
                 }
-                /*
-                Console.WriteLine("---------------------");
-                Console.Write("Max Score: ");
-                Console.WriteLine(maxScore);
-                Console.Write("Min Score: ");
-                Console.WriteLine(minScore);
-                Console.Write("Avg Score: ");
-                Console.WriteLine((double)(total) / (double)(populationSize));
-                Console.WriteLine("---------------------");
-                Console.ReadLine();*/
                 int firstMax = maxScore;
                 int lastMax = 0;
                 double lastAvg = 0;
                 double firstAvg = (double)(total) / (double)(populationSize);
-                for (; currentGeneration <= 100; currentGeneration++)
+                for (; currentGeneration <= 10000; currentGeneration++)
                 {
                     Chromosome[] selected = Chromosome.rouletteSelect(population, populationSize / 2);
                     Chromosome[] nextGen = new Chromosome[populationSize];
@@ -62,31 +52,18 @@ namespace GeneticAlgorithm
                     for (int j = 0; j < populationSize / 2; j += 2)
                     {
                         Chromosome[] offspring = Chromosome.mate(selected[j], selected[j + 1]);
-                        /*Console.WriteLine("Parent1 genes: ");
-                        foreach (uint gene in selected[j].getGenes())
-                            Console.WriteLine(gene);
-                        Console.WriteLine("Parent2 genes: ");
-                        foreach (uint gene in selected[j+1].getGenes())
-                            Console.WriteLine(gene);
-                        Console.WriteLine("Child1 genes: ");
-                        foreach (uint gene in offspring[0].getGenes())
-                            Console.WriteLine(gene);
-                        Console.WriteLine("Child2 genes: ");
-                        foreach (uint gene in offspring[1].getGenes())
-                            Console.WriteLine(gene);
-                        */
+
                         nextGen[j] = offspring[0];
                         nextGen[j + 1] = offspring[1];
                     }
-                    //second half randomly generated
+                    //second half are just the 'parents' that live on
                     for (int j = populationSize / 2; j < populationSize; j++)
                     {
-                        nextGen[j] = new Chromosome(4, .5, .5);
+                        nextGen[j] = selected[j - (populationSize / 2)];
                     }
 
                     for (int j = 0; j < populationSize; j++)
                     {
-                        //Console.WriteLine(nextGen[j].getFitnessScore());
                         if (nextGen[j].getFitnessScore() > maxScore)
                             maxScore = nextGen[j].getFitnessScore();
                         if (nextGen[j].getFitnessScore() < minScore)
@@ -94,37 +71,23 @@ namespace GeneticAlgorithm
                         total += nextGen[j].getFitnessScore();
                     }
 
-                    /*Console.WriteLine("---------------------");
-                    Console.Write("Max Score: ");
-                    Console.WriteLine(maxScore);
-                    Console.Write("Min Score: ");
-                    Console.WriteLine(minScore);
-                    Console.Write("Avg Score: ");
-                    Console.WriteLine((double)(total) / (double)(populationSize));
-                    Console.WriteLine("---------------------");*/
-                    // Console.ReadLine();
                     population = nextGen;
                     lastMax = maxScore;
                     lastAvg = ((double)(total) / (double)(populationSize));
                 }
-                /*Console.WriteLine("*****************************");
-                Console.WriteLine(firstAvg);
-                Console.WriteLine(lastAvg);*/
-                //Console.WriteLine(firstAvg < lastAvg);
+
                 if (firstAvg < lastAvg)
                     better++;
                 else
                     worse++;
                 grandAvgSum += lastAvg;
-                // Used to stop from closing
-                //Console.ReadLine();
             }
             Console.Write("Better performance: ");
             Console.WriteLine(better);
             Console.Write("Worse performance: ");
             Console.WriteLine(worse);
             Console.Write("Grand Average: ");
-            Console.WriteLine(grandAvgSum/100);
+            Console.WriteLine(grandAvgSum/runs);
             Console.ReadLine();
         }
     }

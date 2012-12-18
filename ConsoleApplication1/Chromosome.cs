@@ -43,58 +43,52 @@ namespace GeneticAlgorithm
             fitnessScore = computeFitnessScore();
         }
 
-        //Working but may be inefficient.
         public static Chromosome[] rouletteSelect(Chromosome[] population, int numToSelect)
-        {
+        {            
             Chromosome[] toReturn = new Chromosome[numToSelect];
-            for (int i = 0; i < numToSelect; i++)
-                toReturn[i] = null;
+            int[] popIndex = new int[population.Length];
+            bool[] hasBeenSelected = new bool[population.Length];
 
-            //population contains all fitness scores
-            int[] fitnessScores = new int[population.Length];
-            for (int i = 0; i < population.Length; i++)
+            // sort and compute total fitness
+            int fitnessSum = 0;
+            population = population.OrderByDescending(x => x.getFitnessScore()).ToArray();
+            int previousFitness = 0;
+            int counter = 0;
+            foreach (Chromosome chrome in population)
             {
-                fitnessScores[i] = population[i].getFitnessScore();
+                popIndex[counter] = chrome.getFitnessScore() + previousFitness;
+                previousFitness = popIndex[counter];
+                counter++;
+                fitnessSum += chrome.getFitnessScore();
             }
-            for (int i = 1; i < population.Length; i++)
-            {
-                fitnessScores[i] = fitnessScores[i] + fitnessScores[i - 1];
-            }
-            //final position will have the total for the entire population.
-            //each fitness score represents number of balls, then each is also
-            //an assignment for a range of ball numbers.
 
-            //Choose the 2 balls, if it was already selected, choose again
+            int selected;
             for(int i = 0; i < numToSelect; i++)
             {
-                int selected = (Program.rng.Next() % fitnessScores[population.Length - 1]) + 1;
-                
-                //find which index this is
-                for(int j = 0; j < population.Length; j++)
+                selected = Program.rng.Next(fitnessSum);
+                int index = 0;
+                while (selected >= popIndex[index])
                 {
-                    if(selected <= fitnessScores[j] && !hasBeenSelected(population[j], toReturn))
-                    {
-                        toReturn[i] = population[j];
-                        j = population.Length;
-                    }
-                    else if (selected <= fitnessScores[j] && hasBeenSelected(population[j], toReturn))
-                    {
-                        i--;
-                        j = population.Length;
-                    }
+                    index++;
                 }
+                // chrome @ current index was selected from the roulette
+                // if the chromosome has already been selected, we just randomly
+                // generate another number. This is an easy way to do this but
+                // can potentially take a long time to finish the selection if
+                // the proportion of selected to not selected is high.
+                if (!hasBeenSelected[index])
+                {
+                    toReturn[i] = population[index];
+                    hasBeenSelected[index] = true;
+                }
+                else
+                {
+                    // we don't want to go to the next index since we tried
+                    // to select something already selected
+                    i--;
+                }                
             }
             return toReturn;
-        }
-
-        private static bool hasBeenSelected(Chromosome toCheck, Chromosome[] selected)
-        {
-            foreach (Chromosome oneSelected in selected)
-            {
-                if (oneSelected != null && oneSelected.Equals(toCheck))
-                    return true;
-            }
-            return false;
         }
 
         private int computeFitnessScore()
@@ -108,7 +102,7 @@ namespace GeneticAlgorithm
             uint end = genes[2];
             uint intel = genes[3];
 
-            int toReturn = (int)((100 * str) + (100 * spd) + (100 * end) + (100 * intel));
+            int toReturn = (int)(str + spd + end + intel);
             if (toReturn < 0)
                 toReturn = 0;
             return toReturn;
@@ -120,27 +114,14 @@ namespace GeneticAlgorithm
             //crossover points = 2
             //For 2 crossover points, just do the process twice
             
-            //note on crossoverRate. Sould be between 0 and 1.
-            //0 <-- more weight on parent 1
-            //1 <-- more weight on parent 2
-            //for now, crossoverRate is going to be ignored and the pivot
-            //for the two chromosomes will be random
             uint[] childGenes1 = new uint[mate1.getNumGenes()];
             uint[] childGenes2 = new uint[mate2.getNumGenes()];
 
             Chromosome[] toReturn = new Chromosome[2];
-            /*
-            Console.WriteLine("mate1: ");
-            foreach (uint gene in mate1.getGenes())
-                Console.WriteLine(gene);
-            Console.WriteLine("mate2: ");
-            foreach (uint gene in mate2.getGenes())
-                Console.WriteLine(gene);
-            */
+
             //chose which change to split on
             int geneToSplit = Program.rng.Next(mate1.getNumGenes());
-            //Console.Write("Gene to split: ");
-            //Console.WriteLine(geneToSplit);
+
             //calculate how many bits we are using
             int bitPos = 0;
             int bitsCalc = maxGeneVal;
@@ -150,8 +131,7 @@ namespace GeneticAlgorithm
                 bitPos++;
             }
             int pivot = Program.rng.Next(bitPos + 1);
-            //Console.Write("Pivot: ");
-            //Console.WriteLine(pivot);
+
             //no mid-gene swap
             if (pivot == 0)
             {
@@ -197,18 +177,12 @@ namespace GeneticAlgorithm
 
             toReturn[0] = newChild1;
             toReturn[1] = newChild2;
-            /*
-            Console.WriteLine("child1: ");
-            foreach (uint gene in newChild1.getGenes())
-                Console.WriteLine(gene);
-            Console.WriteLine("child2: ");
-            foreach (uint gene in newChild2.getGenes())
-                Console.WriteLine(gene);
-            Console.WriteLine("------------------------");
-            */
+
             if (hasMated)
             {
                 hasMated = false;
+                toReturn[0] = mutateGenes(toReturn[0], mate1.getMutationRate());
+                toReturn[1] = mutateGenes(toReturn[1], mate2.getMutationRate());
                 return toReturn;
             }
             else
@@ -219,9 +193,29 @@ namespace GeneticAlgorithm
         }
 
         // random chance that a bit is flipped
-        private void mutateGenes()
+        private static Chromosome mutateGenes(Chromosome toMutate, double mutationRate)
         {
+            double target = 1.0 / mutationRate;
+            if (target == Program.rng.Next(1000) + 1)
+            {
+                // mutation! now we randomly select bit to change
+                
+                int geneToMutate = Program.rng.Next(toMutate.getNumGenes());
+                int bitsCalc = maxGeneVal;
+                int bitPos = 0;
+                while (bitsCalc != 1)
+                {
+                    bitsCalc = bitsCalc >> 1;
+                    bitPos++;
+                }
+                
+                int bitToFlip = Program.rng.Next(bitPos);
+                uint newGeneVal = toMutate.getGenes()[geneToMutate];
+                newGeneVal ^= (uint)(1 << bitToFlip);
 
+                toMutate.setGene(geneToMutate, newGeneVal);
+            }
+            return toMutate;
         }
 
         // Get'ers/set'ers
@@ -234,6 +228,11 @@ namespace GeneticAlgorithm
         public int getFitnessScore()
         {
             return fitnessScore;
+        }
+
+        public void setFitnessScore(int fitnessScore)
+        {
+            this.fitnessScore = fitnessScore;
         }
 
         public double getCrossoverRate()
@@ -249,6 +248,10 @@ namespace GeneticAlgorithm
         public uint[] getGenes()
         {
             return genes;
+        }
+        public void setGene(int index, uint newVal)
+        {
+            genes[index] = newVal;
         }
     }
 }

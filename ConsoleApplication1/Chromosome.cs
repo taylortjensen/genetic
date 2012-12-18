@@ -13,6 +13,8 @@ namespace GeneticAlgorithm
         private double crossoverRate;
         private double mutationRate;
 
+        private static bool hasMated = false;
+
         private const int maxGeneVal = 16;
 
         // New random chromosome
@@ -106,7 +108,7 @@ namespace GeneticAlgorithm
             uint end = genes[2];
             uint intel = genes[3];
 
-            int toReturn = (int)((100 * str) + (150 * spd) - (100 * end) + (200 * intel));
+            int toReturn = (int)((100 * str) + (100 * spd) + (100 * end) + (100 * intel));
             if (toReturn < 0)
                 toReturn = 0;
             return toReturn;
@@ -115,7 +117,8 @@ namespace GeneticAlgorithm
         // crossing genes of 2 mates
         public static Chromosome[] mate(Chromosome mate1, Chromosome mate2)
         {
-            //crossover points = 1
+            //crossover points = 2
+            //For 2 crossover points, just do the process twice
             
             //note on crossoverRate. Sould be between 0 and 1.
             //0 <-- more weight on parent 1
@@ -125,10 +128,19 @@ namespace GeneticAlgorithm
             uint[] childGenes1 = new uint[mate1.getNumGenes()];
             uint[] childGenes2 = new uint[mate2.getNumGenes()];
 
+            Chromosome[] toReturn = new Chromosome[2];
+            /*
+            Console.WriteLine("mate1: ");
+            foreach (uint gene in mate1.getGenes())
+                Console.WriteLine(gene);
+            Console.WriteLine("mate2: ");
+            foreach (uint gene in mate2.getGenes())
+                Console.WriteLine(gene);
+            */
             //chose which change to split on
             int geneToSplit = Program.rng.Next(mate1.getNumGenes());
-            Console.Write("Gene to split: ");
-            Console.WriteLine(geneToSplit);
+            //Console.Write("Gene to split: ");
+            //Console.WriteLine(geneToSplit);
             //calculate how many bits we are using
             int bitPos = 0;
             int bitsCalc = maxGeneVal;
@@ -137,9 +149,9 @@ namespace GeneticAlgorithm
                 bitsCalc = bitsCalc >> 1;
                 bitPos++;
             }
-            int pivot = Program.rng.Next(bitPos+1);
-            Console.Write("Pivot: ");
-            Console.WriteLine(pivot);
+            int pivot = Program.rng.Next(bitPos + 1);
+            //Console.Write("Pivot: ");
+            //Console.WriteLine(pivot);
             //no mid-gene swap
             if (pivot == 0)
             {
@@ -158,12 +170,12 @@ namespace GeneticAlgorithm
                 // half of the chunk that is swapping
                 uint swapChunk1 = mate1.getGenes()[geneToSplit] & swapMask;
                 uint swapChunk2 = mate2.getGenes()[geneToSplit] & swapMask;
-                
+
                 //put two havles together with bitwise 'or'
                 childGenes1[geneToSplit] = (mate1.getGenes()[geneToSplit] & saveMask) | swapChunk2;
                 childGenes2[geneToSplit] = (mate2.getGenes()[geneToSplit] & saveMask) | swapChunk1;
             }
-            
+
             //then, copy all genes before the pivot, and swap all genes after pivot
             for (int i = 0; i < mate1.getNumGenes(); i++)
             {
@@ -172,18 +184,38 @@ namespace GeneticAlgorithm
                     childGenes1[i] = mate1.getGenes()[i];
                     childGenes2[i] = mate2.getGenes()[i];
                 }
-                else if(i > geneToSplit)
+                else if (i > geneToSplit)
                 {
                     childGenes1[i] = mate2.getGenes()[i];
                     childGenes2[i] = mate1.getGenes()[i];
                 }
             }
+                
 
-            Chromosome[] toReturn = new Chromosome[2];
-            toReturn[0] = new Chromosome(childGenes1, mate1.getCrossoverRate(), mate1.getMutationRate());
-            toReturn[1] = new Chromosome(childGenes2, mate2.getCrossoverRate(), mate2.getMutationRate());
+            Chromosome newChild1 = new Chromosome(childGenes1, mate1.getCrossoverRate(), mate1.getMutationRate());
+            Chromosome newChild2 = new Chromosome(childGenes2, mate2.getCrossoverRate(), mate2.getMutationRate());
 
-            return toReturn;
+            toReturn[0] = newChild1;
+            toReturn[1] = newChild2;
+            /*
+            Console.WriteLine("child1: ");
+            foreach (uint gene in newChild1.getGenes())
+                Console.WriteLine(gene);
+            Console.WriteLine("child2: ");
+            foreach (uint gene in newChild2.getGenes())
+                Console.WriteLine(gene);
+            Console.WriteLine("------------------------");
+            */
+            if (hasMated)
+            {
+                hasMated = false;
+                return toReturn;
+            }
+            else
+            {
+                hasMated = true;
+                return mate(newChild1, newChild2);
+            }
         }
 
         // random chance that a bit is flipped
